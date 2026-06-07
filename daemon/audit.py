@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import time
-from typing import Optional
+from typing import Any, Optional
 
 import aiosqlite
 
@@ -36,11 +36,14 @@ class AuditLog:
     async def query(self, agent_id: Optional[str] = None,
                     resource: Optional[str] = None,
                     limit: int = 100) -> list[dict]:
-        clauses, params = [], []
+        clauses: list[str] = []
+        params: list[Any] = []
         if agent_id:
-            clauses.append("agent_id=?"); params.append(agent_id)
+            clauses.append("agent_id=?")
+            params.append(agent_id)
         if resource:
-            clauses.append("resource=?"); params.append(resource)
+            clauses.append("resource=?")
+            params.append(resource)
         where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
         params.append(limit)
         async with aiosqlite.connect(self.db_path) as db:

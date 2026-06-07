@@ -105,9 +105,10 @@ async def acquire(req: AcquireRequest):
     cycles = dlock.detect_cycles()
     if cycles:
         victim = dlock.break_cycle(cycles[0])
-        await audit.log("DEADLOCK_BREAK", victim, req.resource, req.mode)
-        await store.release_lease(victim, req.resource)
-        dlock.remove_edge(victim, req.resource)
+        if victim:
+            await audit.log("DEADLOCK_BREAK", victim, req.resource, req.mode)
+            await store.release_lease(victim, req.resource)
+            dlock.remove_edge(victim, req.resource)
 
     return {"status": "acquired", "lease": lease}
 
@@ -141,7 +142,7 @@ async def wait_for_resource(resource: str, timeout: int = 30):
 
 @app.post("/policy")
 async def set_policy(req: PolicyRequest):
-    policy.set_policy(req.resource_pattern, req.dict(exclude={"resource_pattern"}))
+    policy.set_policy(req.resource_pattern, req.model_dump(exclude={"resource_pattern"}))
     return {"status": "ok"}
 
 

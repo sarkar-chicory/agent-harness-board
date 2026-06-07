@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Optional
+from typing import Any, Optional
 
 import aiosqlite
 
@@ -71,11 +71,14 @@ class LeaseStore:
 
     async def list_leases(self, agent_id: Optional[str] = None,
                           resource: Optional[str] = None) -> list[dict]:
-        clauses, params = [], []
+        clauses: list[str] = []
+        params: list[Any] = []
         if agent_id:
-            clauses.append("agent_id=?"); params.append(agent_id)
+            clauses.append("agent_id=?")
+            params.append(agent_id)
         if resource:
-            clauses.append("resource=?"); params.append(resource)
+            clauses.append("resource=?")
+            params.append(resource)
         where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
@@ -103,7 +106,7 @@ class LeaseStore:
 
     async def get_holders(self, resource: str) -> list[str]:
         leases = await self.list_leases(resource=resource)
-        return [l["agent_id"] for l in leases]
+        return [lease["agent_id"] for lease in leases]
 
     async def enqueue(self, agent_id: str, resource: str, mode: str):
         async with aiosqlite.connect(self.db_path) as db:
@@ -118,7 +121,8 @@ class LeaseStore:
             cur = await db.execute(
                 "SELECT COUNT(*) FROM queue WHERE resource=?", (resource,)
             )
-            return (await cur.fetchone())[0]
+            row = await cur.fetchone()
+            return row[0] if row else 0
 
     async def heartbeat(self, agent_id: str, resource: str,
                         extend_by: int = 60) -> bool:
