@@ -81,8 +81,10 @@ def leases(
 ):
     """List active resource leases."""
     params = {}
-    if agent:    params["agent_id"] = agent
-    if resource: params["resource"] = resource
+    if agent:
+        params["agent_id"] = agent
+    if resource:
+        params["resource"] = resource
     r = httpx.get(f"{BOARD_URL}/leases", params=params, timeout=5)
     r.raise_for_status()
     data = r.json().get("leases", [])
@@ -93,9 +95,9 @@ def leases(
     typer.echo("-" * 78)
     import time
     now = time.time()
-    for l in data:
-        ttl = max(0, l["expires_at"] - now)
-        typer.echo(f"{l['agent_id']:<24} {l['resource']:<32} {l['mode']:<8} {ttl:>9.0f}s")
+    for lease in data:
+        ttl = max(0, lease["expires_at"] - now)
+        typer.echo(f"{lease['agent_id']:<24} {lease['resource']:<32} {lease['mode']:<8} {ttl:>9.0f}s")
 
 
 @app.command()

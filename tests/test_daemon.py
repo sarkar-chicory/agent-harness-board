@@ -3,13 +3,22 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 
+from daemon import main
 from daemon.main import app
 
 
-@pytest.fixture
-async def client():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        yield c
+@pytest_asyncio.fixture
+async def client(tmp_path, monkeypatch):
+    # Isolate state per test: a fresh DB file and an empty deadlock graph.
+    db = str(tmp_path / "board.db")
+    monkeypatch.setattr(main.store, "db_path", db)
+    monkeypatch.setattr(main.audit, "db_path", db)
+    main.dlock._graph.clear()
+    main.policy._overrides.clear()
+    # Run the app's lifespan so tables are created (ASGITransport skips it).
+    async with main.app.router.lifespan_context(app):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            yield c
 
 
 @pytest.mark.asyncio
@@ -32,7 +41,7 @@ async def test_acquire_release(client):
     # List
     r2 = await client.get("/leases")
     leases = r2.json()["leases"]
-    assert any(l["agent_id"] == "test_agent" for l in leases)
+    assert any(lease["agent_id"] == "test_agent" for lease in leases)
 
     # Release
     r3 = await client.post("/release", json={"agent_id": "test_agent", "resource": "test.csv"})
@@ -63,3 +72,25 @@ async def test_audit_log(client):
     event_types = [e["event"] for e in events]
     assert "ACQUIRED" in event_types
     assert "RELEASED" in event_types
+
+
+@pytest.mark.asyncio
+async def test_policy_override(client):
+    # Set a runtime override that only permits reads on secret.* resources.
+    r = await client.post("/policy", json={
+        "resource_pattern": "secret.*", "allow_modes": ["read"],
+    })
+    assert r.json()["status"] == "ok"
+
+    # Acquiring a write lease must now be denied by policy (regression: the
+    # override loop used to crash by unpacking dict keys instead of items).
+    r2 = await client.post("/acquire", json={
+        "agent_id": "pol_agent", "resource": "secret.txt", "mode": "write", "ttl": 30
+    })
+    assert r2.status_code == 403
+
+    # A read on the same resource is still allowed.
+    r3 = await client.post("/acquire", json={
+        "agent_id": "pol_agent", "resource": "secret.txt", "mode": "read", "ttl": 30
+    })
+    assert r3.status_code == 200

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import fnmatch
 import os
-import time
 from typing import Any
 
 try:
@@ -11,7 +10,7 @@ try:
 except ImportError:
     yaml = None  # type: ignore
 
-DEFAULT_POLICY = {
+DEFAULT_POLICY: dict[str, Any] = {
     "max_readers": 10,
     "max_writers": 1,
     "allow_modes": ["read", "write", "exec", "call"],
@@ -51,7 +50,9 @@ class PolicyEngine:
                 break
 
         # Runtime overrides (from POST /policy)
-        for pattern, override in sorted(self._overrides, key=len, reverse=True):
+        for pattern, override in sorted(
+            self._overrides.items(), key=lambda kv: len(kv[0]), reverse=True
+        ):
             if fnmatch.fnmatch(resource, pattern):
                 result.update(override)
                 break

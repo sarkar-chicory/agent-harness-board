@@ -54,7 +54,7 @@ class HarnessBoardCoordinator:
             # Pick victim: last agent in cycle
             victim = cycle[-1]
             # Find what the victim holds
-            victim_leases = [l for l in leases if l["agent_id"] == victim]
+            victim_leases = [ls for ls in leases if ls["agent_id"] == victim]
             for lease in victim_leases:
                 print(f"[coordinator] Evicting {victim} from {lease['resource']}")
                 await self._client.post("/release",
