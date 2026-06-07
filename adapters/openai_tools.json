@@ -1,0 +1,63 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "harness_acquire",
+      "description": "Acquire a resource lease before accessing a shared resource (file, API, database). Always call this before accessing a resource and always pair it with harness_release.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "agent_id": { "type": "string", "description": "Unique identifier for this agent." },
+          "resource": { "type": "string", "description": "Resource path or identifier, e.g. 'api.openai.com', '/data/model.pt'." },
+          "mode":     { "type": "string", "enum": ["read", "write", "exec", "call"], "description": "Access mode." },
+          "ttl":      { "type": "integer", "description": "Lease TTL in seconds (default 60).", "default": 60 }
+        },
+        "required": ["agent_id", "resource"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "harness_release",
+      "description": "Release a previously acquired resource lease. Always call this after you are done with a resource.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "agent_id": { "type": "string" },
+          "resource": { "type": "string" }
+        },
+        "required": ["agent_id", "resource"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "harness_list_leases",
+      "description": "List all currently held resource leases. Use to check what resources are in use before requesting access.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "agent_id": { "type": "string", "description": "Filter by agent ID (optional)." },
+          "resource": { "type": "string", "description": "Filter by resource (optional)." }
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "harness_wait",
+      "description": "Long-poll until a resource becomes available.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "resource": { "type": "string" },
+          "timeout":  { "type": "integer", "default": 30 }
+        },
+        "required": ["resource"]
+      }
+    }
+  }
+]

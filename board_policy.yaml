@@ -1,0 +1,72 @@
+# agent-harness-board resource policies
+# Patterns use fnmatch syntax. First matching pattern wins.
+
+policies:
+  # CSV / tabular data — allow multiple readers, one writer
+  "*.csv":
+    max_readers: 20
+    max_writers: 1
+    allow_modes: [read, write]
+    ttl_limit: 120
+
+  # Model weights — expensive, exclusive write
+  "*.pt":
+    max_readers: 5
+    max_writers: 1
+    allow_modes: [read, write, exec]
+    ttl_limit: 600
+
+  "*.safetensors":
+    max_readers: 5
+    max_writers: 1
+    allow_modes: [read, write, exec]
+    ttl_limit: 600
+
+  # JSON data files
+  "*.json":
+    max_readers: 10
+    max_writers: 1
+    allow_modes: [read, write]
+    ttl_limit: 60
+
+  # SQLite databases — single writer
+  "*.db":
+    max_readers: 5
+    max_writers: 1
+    allow_modes: [read, write]
+    ttl_limit: 300
+
+  # Anthropic API — rate-limit concurrent callers
+  "api.anthropic.com":
+    max_readers: 0
+    max_writers: 0
+    allow_modes: [call]
+    ttl_limit: 120
+
+  # OpenAI API
+  "api.openai.com":
+    max_readers: 0
+    max_writers: 0
+    allow_modes: [call]
+    ttl_limit: 120
+
+  # Google Gemini API
+  "generativelanguage.googleapis.com":
+    max_readers: 0
+    max_writers: 0
+    allow_modes: [call]
+    ttl_limit: 120
+
+  # Cohere API
+  "api.cohere.com":
+    max_readers: 0
+    max_writers: 0
+    allow_modes: [call]
+    ttl_limit: 120
+
+  # Process / compute resources
+  "proc:**":
+    max_readers: 0
+    max_writers: 1
+    allow_modes: [exec]
+    ttl_limit: 900
